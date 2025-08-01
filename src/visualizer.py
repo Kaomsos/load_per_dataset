@@ -57,5 +57,5 @@ class AnnotatedImageVisualizer(DataVisualizerProtocol):
                 font=font
             )
         # Resize image while maintaining aspect ratio
-        image.thumbnail((600, 600))
+        # image.thumbnail((1000, 1000))
         return image
