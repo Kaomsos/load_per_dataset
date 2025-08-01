@@ -41,10 +41,17 @@ class ImageBrowser:
         self.image_list = Listbox(self.list_frame)
         self.image_list.pack(side="left", fill="both")
 
+        self.scrollbar = Scrollbar(self.list_frame)
+        self.scrollbar.pack(side="right", fill="y")
+
+        # Configure scrollbar and listbox to work together
+        self.image_list.config(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.config(command=self.image_list.yview)
+
         # Navigation buttons frame with vertical centering
         nav_frame = Frame(self.list_frame)
         nav_frame.pack(side="left", fill="y")
-        
+
         # Add spacer frame for vertical centering
         Frame(nav_frame).pack(expand=True)  # Top spacer
         
@@ -56,8 +63,7 @@ class ImageBrowser:
         
         Frame(nav_frame).pack(expand=True)  # Bottom spacer
 
-        self.scrollbar = Scrollbar(self.list_frame)
-        self.scrollbar.pack(side="right", fill="y")
+        
 
         # Right side content
         image_frame = Frame(self.master)  # Added: new frame for right side content
@@ -90,12 +96,26 @@ class ImageBrowser:
         self.master.bind('<Button-4>', lambda e: self.show_previous_image())  # Linux
         self.master.bind('<Button-5>', lambda e: self.show_next_image())  # Linux
         
+        # Add list scroll binding
+        self.list_frame.bind('<MouseWheel>', self._on_list_scroll)  # Windows
+        self.list_frame.bind('<Button-4>', lambda e: self._on_list_scroll(e, 120))  # Linux
+        self.list_frame.bind('<Button-5>', lambda e: self._on_list_scroll(e, -120))  # Linux
+        
+    def _on_list_scroll(self, event, delta=None):
+        # Use provided delta for Linux, or get from event for Windows
+        scroll_delta = delta if delta is not None else event.delta
+        # Scroll 2 units at a time
+        self.image_list.yview_scroll(-1 * (scroll_delta // 120), "units")
+        # Prevent event propagation
+        return "break"
+
     def _on_mousewheel(self, event):
-        # Windows mouse wheel event, delta is positive when scrolling up
-        if event.delta > 0:
-            self.show_previous_image()
-        else:
-            self.show_next_image()
+        # Only handle image navigation when not in list frame
+        if not str(event.widget).startswith(str(self.list_frame)):
+            if event.delta > 0:
+                self.show_previous_image()
+            else:
+                self.show_next_image()
 
     def on_select(self, event):
         selection = self.image_list.curselection()
@@ -123,10 +143,11 @@ class ImageBrowser:
         self.image_list.delete(0, 'end')
         for idx, name in enumerate(self.data_loader.data_item_name_list):
             self.image_list.insert('end', name)
+            # NOTE: this could be slow 
             # Check if the item has annotation
-            item = self.data_loader.get_item_by_index(idx)
-            if getattr(item, "annotation", None) is None:
-                self.image_list.itemconfig(idx, fg='red')
+            # item = self.data_loader.get_item_by_index(idx)
+            # if getattr(item, "annotation", None) is None:
+            #     self.image_list.itemconfig(idx, fg='red')
     
     def show_image(self):
         if not self.data_loader:
