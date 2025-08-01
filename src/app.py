@@ -4,6 +4,7 @@
 #   i.e., put everything together.
 
 from tkinter import Tk, Frame, Button, Listbox, Scrollbar, filedialog, Label
+from ui import ImageDisplay
 from PIL import ImageTk
 from typing_ import DataLoaderProtocol
 from data_loader import FolderLoader, ZipLoader
@@ -15,51 +16,75 @@ class ImageBrowser:
         self.master = master
         self.master.title("Image Browser")
         
-        # Add filename display
-        self.filename_label = Label(self.master, text="No file selected")
-        self.filename_label.pack()
-        
-        # Frame for list and scrollbar
-        self.frame = Frame(self.master)
-        self.frame.pack(fill="both", expand=True)
-
-        self.image_list = Listbox(self.frame)
-        self.image_list.pack(side="left", fill="both", expand=True)
-        # Add list click event
-        self.image_list.bind('<<ListboxSelect>>', self.on_select)
-
-        self.scrollbar = Scrollbar(self.frame)
-        self.scrollbar.pack(side="right", fill="y")
-
-        self.image_list.config(yscrollcommand=self.scrollbar.set)
-        self.scrollbar.config(command=self.image_list.yview)
-
-        # Control buttons frame
-        self.button_frame = Frame(self.master)
-        self.button_frame.pack(fill="x")
-
-        self.load_button = Button(self.button_frame, text="Load Images", command=self.load_folder)
-        self.load_button.pack(side="left")
-
-        self.load_zip_button = Button(self.button_frame, text="Load ZIP", command=self.load_zipfile)
-        self.load_zip_button.pack(side="left")
-
-        self.prev_button = Button(self.button_frame, text="Previous", command=self.show_previous_image)
-        self.prev_button.pack(side="left")
-
-        self.next_button = Button(self.button_frame, text="Next", command=self.show_next_image)
-        self.next_button.pack(side="left")
-
-        self.image_label = Label(self.master)
-        self.image_label.pack(expand=True)
+        self._create_ui()
+        self._bind_events()
 
         self.data_loader: DataLoaderProtocol = None
         self.visualizer = AnnotatedImageVisualizer()
         self.current_image_index = 0
 
+    def _create_ui(self):
+        # Control buttons frame
+        self.button_frame = Frame(self.master)
+        self.button_frame.pack(fill="x")
+
+        self.load_button = Button(self.button_frame, text="Load Folder")
+        self.load_button.pack(side="left")
+
+        self.load_zip_button = Button(self.button_frame, text="Load ZIP")
+        self.load_zip_button.pack(side="left")
+
+        # Frame for list and scrollbar
+        self.list_frame = Frame(self.master)
+        self.list_frame.pack(side="left", fill="y")
+
+        self.image_list = Listbox(self.list_frame)
+        self.image_list.pack(side="left", fill="both")
+
+        # Navigation buttons frame with vertical centering
+        nav_frame = Frame(self.list_frame)
+        nav_frame.pack(side="left", fill="y")
+        
+        # Add spacer frame for vertical centering
+        Frame(nav_frame).pack(expand=True)  # Top spacer
+        
+        self.prev_button = Button(nav_frame, text="↑")
+        self.prev_button.pack(side="top", pady=2)
+
+        self.next_button = Button(nav_frame, text="↓")
+        self.next_button.pack(side="top", pady=2)
+        
+        Frame(nav_frame).pack(expand=True)  # Bottom spacer
+
+        self.scrollbar = Scrollbar(self.list_frame)
+        self.scrollbar.pack(side="right", fill="y")
+
+        # Right side content
+        image_frame = Frame(self.master)  # Added: new frame for right side content
+        image_frame.pack(side="left", fill="both", expand=True)
+
+        self.image_label = Label(image_frame)  # Changed: parent to right_frame
+        self.image_label.pack(expand=True)
+
+        self.filename_label = Label(image_frame)  # Changed: parent to right_frame
+        self.filename_label.pack()
+
+    def _bind_events(self):
+        # Bind list click event
+        self.image_list.bind('<<ListboxSelect>>', self.on_select)
+
+        # Bind control button click events
+        self.load_button.config(command=self.load_folder)
+        self.load_zip_button.config(command=self.load_zipfile)
+        self.prev_button.config(command=self.show_previous_image)
+        self.next_button.config(command=self.show_next_image)
+
         # Bind keyboard events
         self.master.bind('<Left>', lambda e: self.show_previous_image())
+        self.master.bind('<Up>', lambda e: self.show_previous_image())
         self.master.bind('<Right>', lambda e: self.show_next_image())
+        self.master.bind('<Down>', lambda e: self.show_next_image())
+
 
     def on_select(self, event):
         selection = self.image_list.curselection()

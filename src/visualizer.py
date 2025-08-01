@@ -8,6 +8,7 @@ from data_item import AnnotatedImageItem
 DPI = 96  # Standard DPI for most displays
 PPI = 72  # Points per inch, used in font metrics
 
+
 def get_line_height(font_size: float) -> float:
     return font_size * DPI / PPI
 
