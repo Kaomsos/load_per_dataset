@@ -52,10 +52,6 @@ class ImageBrowser:
         self.scrollbar = Scrollbar(self.list_frame)
         self.scrollbar.pack(side="right", fill="y")
 
-        # Configure scrollbar and listbox to work together
-        self.image_list.config(yscrollcommand=self.scrollbar.set)
-        self.scrollbar.config(command=self.image_list.yview)
-
         # Navigation buttons frame with vertical centering
         nav_frame = Frame(self.list_frame)
         nav_frame.pack(side="left", fill="y")
@@ -71,20 +67,33 @@ class ImageBrowser:
         
         Frame(nav_frame).pack(expand=True)  # Bottom spacer
 
+        
+
         # Right side content
-        image_frame = Frame(paned, name="image_frame")  # Changed: parent to paned window
+        image_frame = Frame(
+            paned, name="image_frame", 
+        )  # Changed: parent to paned window
         paned.add(image_frame)
 
         self.filename_label = Label(image_frame)
         self.filename_label.pack(side="top", pady=5, fill="x")
 
         # Make image label fill available space
-        self.image_label = Label(image_frame)
+        self.image_label = Label(
+            image_frame,
+            highlightbackground="gray",  # 边框颜色
+            highlightcolor="gray",      # 获得焦点时的边框颜色，保持一致
+            highlightthickness=2,       # 边框宽度
+        )
         self.image_label.pack(side="top", fill="both", expand=True)
 
     def _bind_events(self):
+        # Configure scrollbar and listbox to work together
+        self.image_list.config(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.config(command=self.image_list.yview)
+
         # Bind list click event
-        self.image_list.bind('<<ListboxSelect>>', self.on_select)
+        self.image_list.bind('<<ListboxSelect>>', self._on_select_listbox)
 
         # Bind control button click events
         self.load_button.config(command=self.load_folder)
@@ -109,6 +118,10 @@ class ImageBrowser:
         self.image_list.bind('<Button-5>', lambda e: self._on_list_scroll(e, -120))  # Linux
     
         self.image_label.bind('<Configure>', self._on_label_resize)
+
+        # Bind enter listbox event to show the full name of the item
+        self.image_list.bind('<Enter>', lambda e: self.image_list.bind('<Motion>', self._on_listbox_motion))
+        self.image_list.bind('<Leave>', lambda e: self.image_list.unbind('<Motion>'))
 
     def _on_label_resize(self, event):
         # Only refresh if size actually changed
@@ -159,11 +172,16 @@ class ImageBrowser:
         # Prevent event propagation
         return "break"
 
-    def on_select(self, event):
+    def _on_select_listbox(self, event):
         selection = self.image_list.curselection()
         if selection:
             self.current_image_index = selection[0]
             self.show_image()
+
+    def _on_listbox_motion(self, event):
+        nearest_item_index = self.image_list.nearest(event.y)
+        
+
 
     def load_folder(self):
         folder_path = filedialog.askdirectory()
@@ -211,12 +229,13 @@ class ImageBrowser:
         label_height = self.image_label.winfo_height()
 
         # Only resize if we have valid dimensions
-        if label_width > 1 and label_height > 1:
+        if label_width > 50 and label_height > 50 and label_width * label_height > 5000:
             image = self._resize_to_fit(image, label_width, label_height)
-            
-        photo = ImageTk.PhotoImage(image)
-        self.image_label.config(image=photo)
-        self.image_label.image = photo
+            photo = ImageTk.PhotoImage(image)
+            self.image_label.config(image=photo)
+            self.image_label.image = photo
+        else:
+            self.image_label.image = None  # Clear image if label size is invalid
         
         # Update filename display
         if getattr(item, "annotation", None) is None:
