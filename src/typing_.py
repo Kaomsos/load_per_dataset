@@ -17,7 +17,7 @@ class DataItemProtocol(Protocol):
 
 class DataVisualizerProtocol(Protocol):
     """Interface for visualizing data items"""
-    def to_image(self, item: DataItemProtocol) -> Image.Image:
+    def to_drawn_image(self, item: DataItemProtocol) -> Image.Image:
         """Convert data item to image"""
         ...
 

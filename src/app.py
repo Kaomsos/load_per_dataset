@@ -62,12 +62,12 @@ class ImageBrowser:
         # Right side content
         image_frame = Frame(self.master)  # Added: new frame for right side content
         image_frame.pack(side="left", fill="both", expand=True)
-
-        self.image_label = Label(image_frame)  # Changed: parent to right_frame
-        self.image_label.pack(expand=True)
-
-        self.filename_label = Label(image_frame)  # Changed: parent to right_frame
+        # Changed: parent to right_frame
+        self.filename_label = Label(image_frame)  
         self.filename_label.pack()
+        # Changed: parent to right_frame
+        self.image_label = Label(image_frame)  
+        self.image_label.pack(expand=True)
 
     def _bind_events(self):
         # Bind list click event
@@ -84,7 +84,18 @@ class ImageBrowser:
         self.master.bind('<Up>', lambda e: self.show_previous_image())
         self.master.bind('<Right>', lambda e: self.show_next_image())
         self.master.bind('<Down>', lambda e: self.show_next_image())
-
+        
+        # Bind mouse wheel events
+        self.master.bind('<MouseWheel>', self._on_mousewheel)  # Windows
+        self.master.bind('<Button-4>', lambda e: self.show_previous_image())  # Linux
+        self.master.bind('<Button-5>', lambda e: self.show_next_image())  # Linux
+        
+    def _on_mousewheel(self, event):
+        # Windows mouse wheel event, delta is positive when scrolling up
+        if event.delta > 0:
+            self.show_previous_image()
+        else:
+            self.show_next_image()
 
     def on_select(self, event):
         selection = self.image_list.curselection()
@@ -97,30 +108,41 @@ class ImageBrowser:
         if folder_path:
             self.data_loader = FolderLoader(folder_path)
             self.update_image_list()
+            self.current_image_index = 0  # Reset to first image
+            self.show_image()  # Show the first image
     
     def load_zipfile(self):
         zip_path = filedialog.askopenfilename(filetypes=[("ZIP files", "*.zip")])
         if zip_path:
             self.data_loader = ZipLoader(zip_path)
             self.update_image_list()
+            self.current_image_index = 0  # Reset to first image
+            self.show_image()  # Show the first image
     
     def update_image_list(self):
         self.image_list.delete(0, 'end')
-        for image in self.data_loader.data_item_name_list:
-            self.image_list.insert('end', image)
-
+        for idx, name in enumerate(self.data_loader.data_item_name_list):
+            self.image_list.insert('end', name)
+            # Check if the item has annotation
+            item = self.data_loader.get_item_by_index(idx)
+            if getattr(item, "annotation", None) is None:
+                self.image_list.itemconfig(idx, fg='red')
+    
     def show_image(self):
         if not self.data_loader:
             return
 
         item = self.data_loader.get_item_by_index(self.current_image_index)
-        image = self.visualizer.to_image(item)
+        image = self.visualizer.to_drawn_image(item)
         photo = ImageTk.PhotoImage(image)
         self.image_label.config(image=photo)
         self.image_label.image = photo
         
         # Update filename display
-        self.filename_label.config(text=item.name)
+        if getattr(item, "annotation", None) is None:
+            self.filename_label.config(text=item.name, fg='red')
+        else:
+            self.filename_label.config(text=item.name)
 
     def show_previous_image(self):
         if self.data_loader:

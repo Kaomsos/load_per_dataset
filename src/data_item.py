@@ -35,7 +35,7 @@ class Box:
 class AnnotatedImageItem:
     name: str
     image: Image.Image
-    annotation: str
+    annotation: str | None
     source: str
 
     def boxes(self) -> list[Box]:

@@ -21,7 +21,7 @@ class AnnotatedImageVisualizer(DataVisualizerProtocol):
     LINE_WIDTH = 4
     FONT_SIZE = 24
 
-    def to_image(self, item: AnnotatedImageItem) -> Image.Image:
+    def to_drawn_image(self, item: AnnotatedImageItem) -> Image.Image:
         # Create a copy of the image to draw on
         image = item.image.copy()
         draw = ImageDraw.Draw(image)
@@ -57,5 +57,5 @@ class AnnotatedImageVisualizer(DataVisualizerProtocol):
                 font=font
             )
         # Resize image while maintaining aspect ratio
-        image.thumbnail((1000, 1000))
+        image.thumbnail((600, 600))
         return image

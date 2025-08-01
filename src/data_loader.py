@@ -51,16 +51,13 @@ def to_annotation_path(image_path: str, annotation_ext: str = "txt") -> str:
 class ZipLoader(DataLoaderProtocol):
     def __init__(self, zip_path: str):
         self._zip_path = zip_path
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            self._file_name_list = list(
-                filter(
-                    lambda name: 
-                        name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) 
-                        and in_zipfile(to_annotation_path(name), zip_ref), 
-                    zip_ref.namelist()
-                )
-            )
-            self._file_name_list.sort()
+        self._zip_ref = zipfile.ZipFile(zip_path, 'r')
+        
+        self._file_name_list = list(filter(
+                lambda name: name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')), 
+                self._zip_ref.namelist()
+            ))
+        self._file_name_list.sort()
 
     @property
     def data_item_name_list(self) -> list[str]:
@@ -69,8 +66,13 @@ class ZipLoader(DataLoaderProtocol):
     def get_item_by_index(self, index: int) -> AnnotatedImageItem:
         name = self._file_name_list[index]
         source = os.path.join(self._zip_path, name)
-        image = zipfile.ZipFile(self._zip_path).open(name)
-        annotation = zipfile.ZipFile(self._zip_path).read(to_annotation_path(name)).decode('utf-8')
+        image = self._zip_ref.open(name)
+
+        if in_zipfile(to_annotation_path(name), self._zip_ref):
+            annotation = self._zip_ref.read(to_annotation_path(name)).decode('utf-8')
+        else:
+            annotation = None
+
         return AnnotatedImageItem(
             name=name,
             source=source,
@@ -80,3 +82,7 @@ class ZipLoader(DataLoaderProtocol):
     
     def __len__(self):
         return len(self._file_name_list)
+
+    def __del__(self):
+        """Ensure the zip file is closed when the loader is deleted."""
+        self._zip_ref.close()
