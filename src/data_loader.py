@@ -60,6 +60,7 @@ class ZipLoader(DataLoaderProtocol):
                     zip_ref.namelist()
                 )
             )
+            self._file_name_list.sort()
 
     @property
     def data_item_name_list(self) -> list[str]:
