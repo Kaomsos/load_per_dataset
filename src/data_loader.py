@@ -2,48 +2,80 @@
 # Description: 
 #   read data from file system or zip files.
 
-from typing_ import DataLoader
 from PIL import Image
+from typing_ import DataLoaderProtocol
+from data_item import ImageItem, AnnotatedImageItem
 import os
 import zipfile
-from typing import List
 
-class FolderDataLoader(DataLoader):
+
+class FolderLoader(DataLoaderProtocol):
     def __init__(self, folder_path: str):
         self._folder_path = folder_path
-        self._file_list = [
+        self._file_name_list = [
             f for f in os.listdir(folder_path)
             if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))
         ]
     
     @property
-    def file_list(self) -> list[str]:
-        return self._file_list
+    def data_item_name_list(self) -> list[str]:
+        return self._file_name_list
     
-    def get_image_by_index(self, index: int) -> Image.Image:
-        image_path = os.path.join(self._folder_path, self._file_list[index])
-        return Image.open(image_path)
+    def get_item_by_index(self, index: int) -> ImageItem:
+        name = self._file_name_list[index]
+        source = os.path.join(self._folder_path, name)
+        return ImageItem(
+            name=name,
+            source=source,
+            image=Image.open(source),
+        )
 
-class ZipDataLoader(DataLoader):
+    def __len__(self):
+        return len(self._file_name_list)
+
+
+def in_zipfile(path: str, zipfile: zipfile.ZipFile) -> bool:
+    try:
+        zipfile.getinfo(path)
+        return True
+    except KeyError:
+        return False
+    
+
+def to_annotation_path(image_path: str, annotation_ext: str = "txt") -> str:
+    """Get the annotation path for an image."""
+    base = image_path.rsplit('.', 1)[0] 
+    return f"{base}.{annotation_ext}"
+
+
+class ZipLoader(DataLoaderProtocol):
     def __init__(self, zip_path: str):
         self._zip_path = zip_path
-        self._zip_ref = zipfile.ZipFile(zip_path, 'r')
-        self._file_list = [
-            f for f in self._zip_ref.namelist()
-            if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))
-        ]
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            self._file_name_list = list(
+                filter(
+                    lambda name: 
+                        name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) 
+                        and in_zipfile(to_annotation_path(name), zip_ref), 
+                    zip_ref.namelist()
+                )
+            )
 
     @property
-    def file_list(self) -> list[str]:
-        return self._file_list
+    def data_item_name_list(self) -> list[str]:
+        return self._file_name_list
     
-    def get_image_by_index(self, index: int) -> Image.Image:
-        with self._zip_ref.open(self._file_list[index]) as file:
-            image = Image.open(file)
-            image.load()  # Ensure the image is read from the file
-            return image
-
-    def __del__(self):
-        """Close the zip file if needed."""
-        self._zip_ref.close() if self._zip_ref else None
-        pass
+    def get_item_by_index(self, index: int) -> AnnotatedImageItem:
+        name = self._file_name_list[index]
+        source = os.path.join(self._zip_path, name)
+        image = zipfile.ZipFile(self._zip_path).open(name)
+        annotation = zipfile.ZipFile(self._zip_path).read(to_annotation_path(name)).decode('utf-8')
+        return AnnotatedImageItem(
+            name=name,
+            source=source,
+            image=Image.open(image),
+            annotation=annotation
+        )
+    
+    def __len__(self):
+        return len(self._file_name_list)

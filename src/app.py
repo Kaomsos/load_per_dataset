@@ -6,8 +6,9 @@
 from tkinter import Tk, Frame, Button, Listbox, Scrollbar, filedialog, Label
 from PIL import Image, ImageTk
 import os
-from typing_ import DataLoader
-from data_loader import FolderDataLoader, ZipDataLoader
+from typing_ import DataLoaderProtocol
+from data_loader import FolderLoader, ZipLoader
+from visualizer import AnnotatedImageVisualizer
 
 
 class ImageBrowser:
@@ -42,44 +43,45 @@ class ImageBrowser:
         self.image_label = Label(self.master)
         self.image_label.pack()
 
-        self.data_loader: DataLoader = None
+        self.data_loader: DataLoaderProtocol = None
         self.current_image_index = 0
 
     def load_folder(self):
         folder_path = filedialog.askdirectory()
         if folder_path:
-            self.data_loader = FolderDataLoader(folder_path)
+            self.data_loader = FolderLoader(folder_path)
             self.update_image_list()
     
     def load_zipfile(self):
         zip_path = filedialog.askopenfilename(filetypes=[("ZIP files", "*.zip")])
         if zip_path:
-            self.data_loader = ZipDataLoader(zip_path)
+            self.data_loader = ZipLoader(zip_path)
             self.update_image_list()
     
     def update_image_list(self):
         self.image_list.delete(0, 'end')
-        for image in self.data_loader.file_list:
+        for image in self.data_loader.data_item_name_list:
             self.image_list.insert('end', image)
 
     def show_image(self, index):
         if not self.data_loader:
             return
-            
-        image = self.data_loader.get_image_by_index(index)
-        image.thumbnail((400, 400))
+
+        data_item = self.data_loader.get_item_by_index(index)
+        image = AnnotatedImageVisualizer().to_image(data_item)
+        
         photo = ImageTk.PhotoImage(image)
         self.image_label.config(image=photo)
         self.image_label.image = photo
 
     def show_previous_image(self):
         if self.data_loader:
-            self.current_image_index = (self.current_image_index - 1) % len(self.data_loader.file_list)
+            self.current_image_index = (self.current_image_index - 1) % len(self.data_loader.data_item_name_list)
             self.show_image(self.current_image_index)
 
     def show_next_image(self):
         if self.data_loader:
-            self.current_image_index = (self.current_image_index + 1) % len(self.data_loader.file_list)
+            self.current_image_index = (self.current_image_index + 1) % len(self.data_loader.data_item_name_list)
             self.show_image(self.current_image_index)
 
     def show_previous_image(self):
