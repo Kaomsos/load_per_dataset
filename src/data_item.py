@@ -42,10 +42,11 @@ class AnnotatedImageItem:
         result = []
         if self.annotation:
             for line in self.annotation.split("\n"):
+                # center coordinates and width/height
+                # (class_id, x0, y0, w, h)
                 parts = line.split()
                 if len(parts) >= 4:
                     class_id = int(parts[0])
-                    # center coordinates and width/height
                     x0, y0, w, h = map(float, parts[1:])
                     # convert center coordinates to top-left coordinates
                     x1 = x0 - w / 2
