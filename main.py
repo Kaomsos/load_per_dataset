@@ -1,6 +1,8 @@
-def main():
-    print("Hello from load-per-dataset!")
+from app import ImageBrowser
+from tkinter import Tk
 
 
 if __name__ == "__main__":
-    main()
+    root = Tk()
+    app = ImageBrowser(root)
+    root.mainloop()
