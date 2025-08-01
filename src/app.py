@@ -37,6 +37,9 @@ class ImageBrowser:
         self.load_zip_button = Button(self.button_frame, text="Load ZIP")
         self.load_zip_button.pack(side="left")
 
+        self.batch_process_button = Button(self.button_frame, text="Batch Process")
+        self.batch_process_button.pack(side="left")
+
         # Paned window to allow resizing
         paned = PanedWindow(self.master, orient="horizontal")
         paned.pack(fill="both", expand=True)
@@ -83,7 +86,7 @@ class ImageBrowser:
             image_frame,
             highlightbackground="gray",  # 边框颜色
             highlightcolor="gray",      # 获得焦点时的边框颜色，保持一致
-            highlightthickness=2,       # 边框宽度
+            highlightthickness=1,       # 边框宽度
         )
         self.image_label.pack(side="top", fill="both", expand=True)
 

@@ -24,11 +24,13 @@ class AnnotatedImageVisualizer(DataVisualizerProtocol):
     def to_drawn_image(self, item: AnnotatedImageItem) -> Image.Image:
         # Create a copy of the image to draw on
         image = item.image.copy()
+
+        if not hasattr(item, 'boxes'):
+            return image
+
         draw = ImageDraw.Draw(image)
-        
         # Get original dimensions
         orig_width, orig_height = image.size
-        
         # Draw boxes before resizing
         for box in item.boxes():
             # Convert normalized coordinates to pixel coordinates
@@ -56,6 +58,4 @@ class AnnotatedImageVisualizer(DataVisualizerProtocol):
                 fill=color,
                 font=font
             )
-        # Resize image while maintaining aspect ratio
-        # image.thumbnail((1000, 1000))
         return image
