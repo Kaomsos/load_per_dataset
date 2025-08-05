@@ -7,6 +7,14 @@ from typing_ import DataLoaderProtocol
 from data_item import ImageItem, AnnotatedImageItem
 import os
 import zipfile
+import re
+
+
+def name_with_left_pad(path: str, pad_width: int = 10) -> str:
+    """Pad the file name with leading zeros."""
+    name = os.path.basename(path)
+    name = name.rsplit('.', 1)[0]  # Remove extension
+    return re.sub(r'(\d+)', lambda m: m.group(0).zfill(pad_width), name)
 
 
 class FolderLoader(DataLoaderProtocol):
@@ -16,6 +24,7 @@ class FolderLoader(DataLoaderProtocol):
             f for f in os.listdir(folder_path)
             if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))
         ]
+        self._file_name_list.sort(key=lambda x: (os.path.dirname(x), name_with_left_pad(x)))
     
     @property
     def data_item_name_list(self) -> list[str]:
@@ -57,7 +66,7 @@ class ZipLoader(DataLoaderProtocol):
                 lambda name: name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')), 
                 self._zip_ref.namelist()
             ))
-        self._file_name_list.sort()
+        self._file_name_list.sort(key=lambda x: (os.path.dirname(x), name_with_left_pad(x)))
 
     @property
     def data_item_name_list(self) -> list[str]:
